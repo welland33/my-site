@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>우리 집 장보기</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A5%AC%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f6faf4;
+    --card: #ffffff;
+    --text: #1e2b1f;
+    --muted: #7d8a7c;
+    --line: #e1ebdd;
+    --green: #2f9e44;
+    --green-dark: #237a34;
+    --green-soft: #e8f5e1;
+    --green-softer: #f4faf1;
+    --box-line: #b8d4af;
+    --danger: #e5484d;
+    --shadow: 0 1px 2px rgba(30, 60, 30, .05), 0 8px 24px rgba(30, 60, 30, .07);
+    --radius: 18px;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 36px 20px 56px; }
+
+  /* 맨 위 제목 */
+  .top { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .logo {
+    flex: none; width: 52px; height: 52px; border-radius: 16px;
+    background: var(--green-soft); display: grid; place-items: center; font-size: 28px;
+  }
+  h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; line-height: 1.25; }
+  .sub { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+
+  .notice {
+    margin-bottom: 16px; padding: 12px 16px; border-radius: 12px;
+    background: #fff4e5; color: #8a5300; font-size: 14px;
+  }
+
+  /* 추가하는 칸 */
+  .add-form {
+    display: grid;
+    grid-template-columns: 172px minmax(0, 1.3fr) minmax(0, 1fr) auto;
+    grid-template-areas: "cat name memo btn";
+    gap: 10px;
+    padding: 14px;
+    margin-bottom: 24px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .f-cat { grid-area: cat; }
+  .f-name { grid-area: name; }
+  .f-memo { grid-area: memo; }
+  .f-btn { grid-area: btn; }
+
+  .add-form select,
+  .add-form input {
+    min-width: 0; height: 48px; padding: 0 14px;
+    font: inherit; font-size: 16px; color: var(--text);
+    background-color: var(--green-softer);
+    border: 1.5px solid var(--line); border-radius: 12px;
+    outline: none;
+    transition: border-color .15s, background-color .15s, box-shadow .15s;
+  }
+  .add-form select {
+    -webkit-appearance: none; appearance: none; cursor: pointer;
+    padding-right: 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%232f9e44' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 12px 8px;
+  }
+  .add-form input::placeholder { color: #a3b0a1; }
+  .add-form select:focus,
+  .add-form input:focus {
+    border-color: var(--green);
+    background-color: #fff;
+    box-shadow: 0 0 0 4px rgba(47, 158, 68, .14);
+  }
+  .add-form input.error {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 4px rgba(229, 72, 77, .12);
+    animation: shake .35s;
+  }
+
+  .add-btn {
+    height: 48px; padding: 0 22px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    font: inherit; font-size: 16px; font-weight: 700; color: #fff;
+    background: var(--green); border: 0; border-radius: 12px; cursor: pointer;
+    transition: background .15s, transform .1s;
+  }
+  .add-btn:hover { background: var(--green-dark); }
+  .add-btn:active { transform: scale(.97); }
+  .add-btn:focus-visible { outline: 3px solid rgba(47, 158, 68, .35); outline-offset: 2px; }
+  .add-btn svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; fill: none; }
+
+  /* 종류별 칸 */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 18px;
+    align-items: start;
+  }
+  .cat {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .cat-head {
+    display: flex; align-items: center; gap: 10px;
+    margin: 0; padding: 14px 18px;
+    font-size: 16px; font-weight: 700; color: var(--green-dark);
+    background: var(--green-soft);
+  }
+  .cat-emoji {
+    flex: none; width: 32px; height: 32px; border-radius: 10px;
+    background: #fff; display: grid; place-items: center; font-size: 18px;
+  }
+  .items { list-style: none; margin: 0; padding: 6px 8px 8px; }
+  .items:empty { display: none; }
+  .empty { margin: 0; padding: 18px; text-align: center; font-size: 14px; color: var(--muted); }
+
+  /* 항목 한 줄 */
+  .item label {
+    position: relative;
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px; border-radius: 12px; cursor: pointer;
+    transition: background .15s;
+  }
+  .item label:hover { background: var(--green-softer); }
+  .item input {
+    position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; pointer-events: none;
+  }
+  .box {
+    flex: none; width: 24px; height: 24px; border-radius: 8px;
+    display: grid; place-items: center;
+    background: #fff; border: 2px solid var(--box-line);
+    transition: background .18s, border-color .18s, transform .12s;
+  }
+  .item label:active .box { transform: scale(.9); }
+  .box svg {
+    width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2.8;
+    stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 16; stroke-dashoffset: 16;
+    transition: stroke-dashoffset .22s ease .04s;
+  }
+  .item input:checked + .box { background: var(--green); border-color: var(--green); }
+  .item input:checked + .box svg { stroke-dashoffset: 0; }
+  .item input:focus-visible + .box { box-shadow: 0 0 0 4px rgba(47, 158, 68, .25); }
+
+  .text {
+    min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px;
+    transition: opacity .2s;
+  }
+  .name { font-size: 16px; overflow-wrap: anywhere; }
+  .memo { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+  .item.done .text { opacity: .5; }
+  .item.done .name {
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+    text-decoration-color: rgba(47, 158, 68, .7);
+  }
+
+  .item.new label { animation: flash 1.2s ease-out; }
+
+  .foot { margin: 28px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
+
+  @keyframes flash {
+    0%, 30% { background: var(--green-soft); }
+    100% { background: transparent; }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  @media (max-width: 780px) {
+    .add-form {
+      grid-template-columns: 160px minmax(0, 1fr) auto;
+      grid-template-areas: "cat name name" "memo memo btn";
+    }
+  }
+  @media (max-width: 480px) {
+    .wrap { padding: 22px 16px 44px; }
+    h1 { font-size: 22px; }
+    .add-form {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "cat cat" "name name" "memo btn";
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo" aria-hidden="true">🥬</div>
+    <div>
+      <h1>우리 집 장보기</h1>
+      <p class="sub">살 것을 적어 두고, 장바구니에 담을 때마다 체크하세요.</p>
+    </div>
+  </header>
+
+  <div class="notice" id="storageNotice" hidden>
+    이 브라우저에서는 저장이 되지 않아요. 창을 닫으면 목록이 사라질 수 있어요.
+  </div>
+
+  <form class="add-form" id="addForm" autocomplete="off">
+    <select class="f-cat" id="catSelect" aria-label="종류"></select>
+    <input class="f-name" id="nameInput" type="text" maxlength="40" placeholder="품목 이름 (예: 대파)" aria-label="품목 이름">
+    <input class="f-memo" id="memoInput" type="text" maxlength="40" placeholder="수량·메모 (예: 2단, 큰 걸로)" aria-label="수량·메모">
+    <button class="add-btn f-btn" type="submit">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11"/></svg>추가
+    </button>
+  </form>
+
+  <main class="board" id="board"></main>
+
+  <p class="foot">체크한 내용은 이 브라우저에만 저장돼요. 다른 브라우저나 다른 컴퓨터에서는 목록이 따로 보여요.</p>
+</div>
+
+<script>
+  const CATEGORIES = [
+    { id: 'veg',   name: '채소·과일',   emoji: '🥬' },
+    { id: 'meat',  name: '고기·생선',   emoji: '🥩' },
+    { id: 'dairy', name: '유제품·계란', emoji: '🥛' },
+    { id: 'grain', name: '쌀·면·빵',    emoji: '🍚' },
+    { id: 'sauce', name: '양념·소스',   emoji: '🧂' },
+    { id: 'snack', name: '간식·음료',   emoji: '🍪' },
+    { id: 'home',  name: '생활용품',    emoji: '🧻' },
+  ];
+  const CAT_IDS = new Set(CATEGORIES.map(c => c.id));
+  const STORAGE_KEY = 'ourhome-grocery-v1';
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const form = document.getElementById('addForm');
+  const catSelect = document.getElementById('catSelect');
+  const nameInput = document.getElementById('nameInput');
+  const memoInput = document.getElementById('memoInput');
+  const board = document.getElementById('board');
+  const storageNotice = document.getElementById('storageNotice');
+
+  // ---------- 저장 (이 브라우저의 localStorage에만) ----------
+
+  let state = load();
+
+  function isValidItem(it) {
+    return it && typeof it.id === 'string' && CAT_IDS.has(it.cat) &&
+      typeof it.name === 'string' && it.name.length > 0;
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return { items: [], lastCat: CATEGORIES[0].id };
+      const data = JSON.parse(raw);
+      const items = Array.isArray(data.items) ? data.items.filter(isValidItem) : [];
+      const lastCat = CAT_IDS.has(data.lastCat) ? data.lastCat : CATEGORIES[0].id;
+      return { items, lastCat };
+    } catch (e) {
+      return { items: [], lastCat: CATEGORIES[0].id };
+    }
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, ...state }));
+      storageNotice.hidden = true;
+    } catch (e) {
+      storageNotice.hidden = false;
+    }
+  }
+
+  function checkStorage() {
+    try {
+      const k = STORAGE_KEY + ':test';
+      localStorage.setItem(k, '1');
+      localStorage.removeItem(k);
+    } catch (e) {
+      storageNotice.hidden = false;
+    }
+  }
+
+  // ---------- 화면 만들기 ----------
+
+  const lists = {};
+  const empties = {};
+  const itemEls = new Map();
+
+  function buildBoard() {
+    for (const cat of CATEGORIES) {
+      const opt = document.createElement('option');
+      opt.value = cat.id;
+      opt.textContent = `${cat.emoji} ${cat.name}`;
+      catSelect.appendChild(opt);
+
+      const section = document.createElement('section');
+      section.className = 'cat';
+      section.setAttribute('aria-labelledby', `head-${cat.id}`);
+
+      const head = document.createElement('h2');
+      head.className = 'cat-head';
+      head.id = `head-${cat.id}`;
+      const emoji = document.createElement('span');
+      emoji.className = 'cat-emoji';
+      emoji.setAttribute('aria-hidden', 'true');
+      emoji.textContent = cat.emoji;
+      head.append(emoji, cat.name);
+
+      const ul = document.createElement('ul');
+      ul.className = 'items';
+
+      const empty = document.createElement('p');
+      empty.className = 'empty';
+      empty.textContent = '아직 항목이 없어요';
+
+      section.append(head, ul, empty);
+      board.appendChild(section);
+      lists[cat.id] = ul;
+      empties[cat.id] = empty;
+    }
+    catSelect.value = state.lastCat;
+  }
+
+  function makeItemEl(item) {
+    const li = document.createElement('li');
+    li.className = 'item';
+    li.dataset.id = item.id;
+
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.addEventListener('change', () => toggle(item.id, input.checked));
+
+    const box = document.createElement('span');
+    box.className = 'box';
+    box.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+
+    const text = document.createElement('span');
+    text.className = 'text';
+    const name = document.createElement('span');
+    name.className = 'name';
+    const memo = document.createElement('span');
+    memo.className = 'memo';
+    text.append(name, memo);
+
+    label.append(input, box, text);
+    li.appendChild(label);
+    return li;
+  }
+
+  function updateItemEl(li, item) {
+    li.classList.toggle('done', item.checked);
+    li.querySelector('input').checked = item.checked;
+    li.querySelector('.name').textContent = item.name;
+    const memo = li.querySelector('.memo');
+    memo.textContent = item.memo || '';
+    memo.hidden = !item.memo;
+  }
+
+  // 안 산 것은 적은 순서대로 위에, 담은 것은 담은 순서대로 아래에
+  function sortItems(list) {
+    return list.slice().sort((a, b) => {
+      if (a.checked !== b.checked) return a.checked ? 1 : -1;
+      if (a.checked) return (a.checkedAt || 0) - (b.checkedAt || 0);
+      return a.createdAt - b.createdAt;
+    });
+  }
+
+  function render(animate = true) {
+    const before = new Map();
+    if (animate && !reduceMotion) {
+      itemEls.forEach((li, id) => before.set(id, li.getBoundingClientRect()));
+    }
+    const focused = document.activeElement;
+    const focusedId = focused && focused.closest ? focused.closest('.item')?.dataset.id : null;
+
+    const alive = new Set(state.items.map(i => i.id));
+    for (const [id, li] of itemEls) {
+      if (!alive.has(id)) { li.remove(); itemEls.delete(id); }
+    }
+
+    for (const cat of CATEGORIES) {
+      const ul = lists[cat.id];
+      const catItems = sortItems(state.items.filter(i => i.cat === cat.id));
+      catItems.forEach((item, idx) => {
+        let li = itemEls.get(item.id);
+        if (!li) { li = makeItemEl(item); itemEls.set(item.id, li); }
+        updateItemEl(li, item);
+        if (ul.children[idx] !== li) ul.insertBefore(li, ul.children[idx] || null);
+      });
+      empties[cat.id].hidden = catItems.length > 0;
+    }
+
+    if (focusedId && itemEls.has(focusedId)) {
+      const input = itemEls.get(focusedId).querySelector('input');
+      if (document.activeElement !== input) input.focus({ preventScroll: true });
+    }
+
+    // 자리가 바뀐 항목은 부드럽게 미끄러지듯 이동
+    before.forEach((rect, id) => {
+      const li = itemEls.get(id);
+      if (!li || !li.animate) return;
+      const now = li.getBoundingClientRect();
+      const dx = rect.left - now.left;
+      const dy = rect.top - now.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      li.animate(
+        [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }],
+        { duration: 320, easing: 'cubic-bezier(.2, .8, .2, 1)' }
+      );
+    });
+  }
+
+  // ---------- 동작 ----------
+
+  function toggle(id, checked) {
+    const item = state.items.find(i => i.id === id);
+    if (!item) return;
+    item.checked = checked;
+    item.checkedAt = checked ? Date.now() : null;
+    save();
+    render();
+  }
+
+  function newId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function clean(text) {
+    return text.trim().replace(/\s+/g, ' ');
+  }
+
+  function flagError(input) {
+    input.classList.remove('error');
+    void input.offsetWidth;
+    input.classList.add('error');
+    input.focus();
+  }
+
+  nameInput.addEventListener('input', () => nameInput.classList.remove('error'));
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = clean(nameInput.value);
+    const memo = clean(memoInput.value);
+    if (!name) { flagError(nameInput); return; }
+
+    const item = {
+      id: newId(),
+      cat: catSelect.value,
+      name,
+      memo,
+      checked: false,
+      checkedAt: null,
+      createdAt: Date.now(),
+    };
+    state.items.push(item);
+    state.lastCat = item.cat;
+    save();
+    render();
+
+    const li = itemEls.get(item.id);
+    li.classList.add('new');
+    li.addEventListener('animationend', () => li.classList.remove('new'), { once: true });
+    li.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+
+    nameInput.value = '';
+    memoInput.value = '';
+    nameInput.focus();
+  });
+
+  catSelect.addEventListener('change', () => {
+    state.lastCat = catSelect.value;
+    save();
+    nameInput.focus();
+  });
+
+  // 같은 파일을 다른 창에서도 열어 두었을 때 서로 맞춰 줌
+  window.addEventListener('storage', (e) => {
+    if (e.key !== STORAGE_KEY) return;
+    state = load();
+    catSelect.value = state.lastCat;
+    render(false);
+  });
+
+  checkStorage();
+  buildBoard();
+  render(false);
+</script>
+</body>
+</html>
