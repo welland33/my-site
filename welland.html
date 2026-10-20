@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Welland</title>
+<meta name="description" content="Welland 첫 화면 모션 그래픽">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wdth,wght@1,50..150,100..900&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('js');</script>
+<style>
+  :root {
+    --abyss: #071A3D;   /* 하늘: 깊은 남색 */
+    --deep: #030C22;    /* 가로선 아래: 가장 어두운 남색 */
+    --indigo: #1C4DA1;  /* 중간 남빛 */
+    --sky: #5FC8FF;     /* 하늘빛 */
+    --core: #E8F8FF;    /* 가장 밝은 빛 */
+
+    --horizon: 60vh;    /* 가로선 높이 */
+    --base-off: .8em;   /* 글자 상자 위에서 글자 밑선까지 (스크립트가 정확히 잰다) */
+    --desc: .2em;       /* 글자 밑선 아래 남는 공간 (스크립트가 정확히 잰다) */
+  }
+  @supports (height: 100svh) {
+    :root { --horizon: 60svh; }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--deep);
+    color: var(--core);
+    font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+
+  .stage {
+    position: relative;
+    height: 100vh;
+    height: 100svh;
+    overflow: hidden;
+    background: var(--deep);
+    isolation: isolate;
+  }
+
+  /* 화면이 흔들려도 가장자리가 드러나지 않게 장면을 화면보다 조금 크게 깐다 */
+  .scene {
+    position: absolute;
+    inset: -6vmin;
+    --h: calc(var(--horizon) + 6vmin);
+    background:
+      linear-gradient(to bottom, var(--abyss) 0, #0A2252 var(--h), var(--deep) var(--h), var(--deep) 100%);
+  }
+
+  /* 가로선 위로 퍼지는 빛 */
+  .glow {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(60vmax 26vmax at 50% var(--h), rgba(28, 77, 161, .75), rgba(28, 77, 161, 0) 70%),
+      radial-gradient(28vmax 10vmax at 50% var(--h), rgba(95, 200, 255, .22), rgba(95, 200, 255, 0) 70%);
+    pointer-events: none;
+  }
+
+  /* 빛의 가로선 */
+  .horizon {
+    position: absolute; left: 0; right: 0;
+    top: var(--h);
+    height: 2px;
+    margin-top: -1px;
+    background: linear-gradient(90deg, rgba(95, 200, 255, 0), var(--sky) 18%, var(--core) 50%, var(--sky) 82%, rgba(95, 200, 255, 0));
+    box-shadow: 0 0 12px rgba(95, 200, 255, .8), 0 0 40px rgba(95, 200, 255, .35);
+    opacity: .75;
+    transform-origin: left center;
+  }
+  .spark {
+    position: absolute; left: 0;
+    top: var(--h);
+    width: 140px; height: 6px;
+    margin: -3px 0 0 -140px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, #fff, var(--sky) 45%, rgba(95, 200, 255, 0));
+    box-shadow: 0 0 30px 6px rgba(95, 200, 255, .6);
+    opacity: 0;
+  }
+  .ripple {
+    position: absolute; left: 0; right: 0;
+    top: var(--h);
+    height: 10px; margin-top: -5px;
+    background: radial-gradient(closest-side, #fff, rgba(95, 200, 255, .9) 35%, rgba(95, 200, 255, 0));
+    opacity: 0;
+  }
+  .flash {
+    position: absolute; inset: 0;
+    background: radial-gradient(48vmax 20vmax at 50% var(--h), rgba(232, 248, 255, .7), rgba(95, 200, 255, .22) 45%, rgba(95, 200, 255, 0) 75%);
+    opacity: 0;
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+
+  /* 글자 */
+  .mark-wrap {
+    position: absolute; left: 0; right: 0;
+    top: calc(var(--h) - var(--base-off));
+    display: grid;
+    justify-items: center;
+    font-family: "Anybody", "Arial Black", sans-serif;
+    font-style: italic;
+    font-weight: 900;
+    font-stretch: 112%;
+    font-size: min(16.5vw, 24vh);
+    line-height: 1;
+    letter-spacing: -.01em;
+    font-synthesis: none;
+  }
+  .mark-wrap > * { grid-area: 1 / 1; align-self: start; margin: 0; font: inherit; white-space: nowrap; }
+
+  .word {
+    filter: brightness(1) drop-shadow(0 0 .025em rgba(95, 200, 255, .9)) drop-shadow(0 0 .16em rgba(28, 77, 161, .9));
+  }
+  .part, .l { display: inline-block; position: relative; }
+  .part.left { transform-origin: right 80%; }
+  .part.right { transform-origin: left 80%; }
+  .glyph { display: inline-block; }
+
+  .ink {
+    background: linear-gradient(180deg, #E8F8FF 0%, #B8E6FF 38%, #84D2FF 72%, var(--sky) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ll 자리에서 솟는 빛기둥 */
+  .beam {
+    position: absolute;
+    left: 44%;
+    bottom: var(--desc);
+    width: .1em;
+    height: 0;
+    margin-left: -.05em;
+    border-radius: .05em .05em 0 0;
+    background: linear-gradient(to top, #fff 0%, var(--core) 12%, var(--sky) 45%, rgba(95, 200, 255, 0) 100%);
+    box-shadow: 0 0 .06em rgba(95, 200, 255, .9), 0 0 .3em rgba(95, 200, 255, .45);
+    transform: skewX(-11deg);
+    transform-origin: bottom center;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* 글자 위로 스치는 빛 */
+  .shine {
+    pointer-events: none;
+    padding: .45em;     /* 빛 번짐이 네모난 상자 모양으로 잘리지 않도록 여유를 둔다 */
+    margin: -.45em;
+    -webkit-mask-image: linear-gradient(100deg, transparent 0 40%, #000 50%, transparent 60% 100%);
+    mask-image: linear-gradient(100deg, transparent 0 40%, #000 50%, transparent 60% 100%);
+    -webkit-mask-size: 260% 100%;
+    mask-size: 260% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: 0% 0;
+    mask-position: 0% 0;
+    filter: drop-shadow(0 0 .04em #fff) drop-shadow(0 0 .18em rgba(95, 200, 255, .9));
+  }
+  .shine .ink { background: none; color: #fff; -webkit-text-fill-color: #fff; }
+
+  /* 가로선 아래 비친 모습 */
+  .reflect {
+    height: calc(var(--base-off) * 2 + 1em);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0 var(--base-off), rgba(0, 0, 0, .55) var(--base-off), transparent calc(var(--base-off) + .55em));
+    mask-image: linear-gradient(to bottom, transparent 0 var(--base-off), rgba(0, 0, 0, .55) var(--base-off), transparent calc(var(--base-off) + .55em));
+    opacity: .45;
+    pointer-events: none;
+  }
+  .reflect-inner { transform: scaleY(-1); transform-origin: 50% var(--base-off); }
+
+  .shine .beam, .reflect .beam { display: none; }
+  .base { display: inline-block; width: 0; height: 0; vertical-align: baseline; }
+
+  /* 다시 보기 버튼 */
+  .replay {
+    position: absolute;
+    right: max(16px, 3vw);
+    bottom: max(16px, 3vh);
+    padding: .6em 1.1em;
+    font: 500 15px/1.2 system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--core);
+    background: rgba(7, 26, 61, .55);
+    border: 1px solid rgba(95, 200, 255, .45);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background-color .2s, border-color .2s;
+  }
+  .replay:hover { background: rgba(28, 77, 161, .6); border-color: var(--sky); }
+  .replay:focus-visible { outline: 2px solid var(--sky); outline-offset: 3px; }
+
+  /* 재생 전에는 감춰 둔다 (스크립트가 있을 때만) */
+  .js .stage:not(.is-playing) .scene,
+  .js .stage:not(.is-playing) .replay { opacity: 0; }
+
+  /* ───────── 등장 장면 ───────── */
+  .is-playing .horizon { animation: draw-line .52s cubic-bezier(.7, 0, .2, 1) both; }
+  .is-playing .spark   { animation: spark-run .52s cubic-bezier(.7, 0, .2, 1) both, spark-idle 7s 1.9s infinite; }
+
+  .is-playing .word .beam {
+    animation: beam .72s .38s both;
+  }
+  .is-playing .word .l + .l .beam { animation-delay: .44s; }
+
+  .is-playing .word .glyph { animation: glyph-on .42s .86s both; }
+
+  .is-playing .word .part.left  { animation: fly-left .64s .7s both; }
+  .is-playing .word .part.right { animation: fly-right .64s .7s both; }
+
+  .is-playing .scene  { animation: shake .4s 1.15s both; }
+  .is-playing .word   { animation: impact .7s 1.14s ease-out; }
+  .is-playing .flash  { animation: flash .7s 1.13s both; }
+  .is-playing .ripple { animation: ripple .9s 1.14s; }
+  .is-playing .glow   { animation: fade-in 1s 1.12s both; }
+  .is-playing .reflect { animation: reflect-in .8s 1.2s both; }
+  .is-playing .replay { animation: fade-in .6s 2s both; }
+
+  /* ───────── 그 뒤로 은은하게 ───────── */
+  .is-playing .shine { animation: shine 7s 1.9s infinite both; }
+  .is-playing .word .pillars { animation: breathe 3.6s 2.2s ease-in-out infinite; }
+
+  @keyframes draw-line {
+    from { transform: scaleX(0); opacity: 1; }
+    to   { transform: scaleX(1); opacity: .75; }
+  }
+  @keyframes spark-run {
+    0%   { transform: translateX(0); opacity: 0; }
+    15%  { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { transform: translateX(calc(100vw + 12vmin + 140px)); opacity: 0; }
+  }
+  @keyframes beam {
+    0%   { height: 0; opacity: 0; animation-timing-function: cubic-bezier(.15, .85, .25, 1); }
+    4%   { opacity: 1; }
+    48%  { height: calc(var(--h) + 4vh); opacity: 1; animation-timing-function: cubic-bezier(.7, 0, .9, .5); }
+    100% { height: .74em; opacity: 0; }
+  }
+  @keyframes spark-idle {
+    0%   { transform: translateX(0); opacity: 0; animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
+    2%   { opacity: .7; }
+    12%  { opacity: .7; }
+    14%  { transform: translateX(calc(100vw + 12vmin + 140px)); opacity: 0; }
+    100% { transform: translateX(calc(100vw + 12vmin + 140px)); opacity: 0; }
+  }
+  @keyframes impact {
+    0%   { filter: brightness(1.8) drop-shadow(0 0 .05em #fff) drop-shadow(0 0 .35em rgba(95, 200, 255, 1)); }
+    100% { filter: brightness(1) drop-shadow(0 0 .025em rgba(95, 200, 255, .9)) drop-shadow(0 0 .16em rgba(28, 77, 161, .9)); }
+  }
+  @keyframes glyph-on {
+    from { opacity: 0; filter: brightness(2.4); }
+    to   { opacity: 1; filter: brightness(1); }
+  }
+  @keyframes fly-left {
+    0%   { transform: translateX(-85vw) skewX(-26deg) scaleX(1.9); opacity: 0; filter: blur(.05em); animation-timing-function: cubic-bezier(.55, 0, .95, .45); }
+    12%  { opacity: 1; }
+    70%  { transform: translateX(.035em) skewX(-3deg) scaleX(.9); filter: blur(0); animation-timing-function: cubic-bezier(.2, .7, .3, 1); }
+    100% { transform: none; opacity: 1; filter: none; }
+  }
+  @keyframes fly-right {
+    0%   { transform: translateX(85vw) skewX(-26deg) scaleX(1.9); opacity: 0; filter: blur(.05em); animation-timing-function: cubic-bezier(.55, 0, .95, .45); }
+    12%  { opacity: 1; }
+    70%  { transform: translateX(-.035em) skewX(-3deg) scaleX(.9); filter: blur(0); animation-timing-function: cubic-bezier(.2, .7, .3, 1); }
+    100% { transform: none; opacity: 1; filter: none; }
+  }
+  @keyframes shake {
+    0%   { transform: translate(0, 0); }
+    12%  { transform: translate(-1.1vmin, .7vmin); }
+    28%  { transform: translate(.9vmin, -.5vmin); }
+    46%  { transform: translate(-.5vmin, .3vmin); }
+    66%  { transform: translate(.25vmin, -.15vmin); }
+    100% { transform: translate(0, 0); }
+  }
+  @keyframes flash {
+    0%   { opacity: 0; }
+    8%   { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes ripple {
+    0%   { transform: scaleX(.03); opacity: 1; }
+    100% { transform: scaleX(1.6); opacity: 0; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+  }
+  @keyframes reflect-in {
+    from { opacity: 0; transform: translateY(.04em); }
+  }
+  @keyframes shine {
+    0%   { -webkit-mask-position: 100% 0; mask-position: 100% 0; animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
+    14%  { -webkit-mask-position: 0% 0; mask-position: 0% 0; }
+    100% { -webkit-mask-position: 0% 0; mask-position: 0% 0; }
+  }
+  @keyframes breathe {
+    0%, 100% { filter: drop-shadow(0 0 .02em rgba(95, 200, 255, .5)); }
+    50%      { filter: drop-shadow(0 0 .1em rgba(95, 200, 255, 1)); }
+  }
+
+  /* 움직임 줄이기를 켠 사람에게는 조용히 나타나기만 */
+  @media (prefers-reduced-motion: reduce) {
+    .is-playing *, .is-playing .scene { animation: none !important; }
+    .is-playing .scene { animation: fade-in .8s ease both !important; }
+  }
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+  <div class="scene">
+    <div class="glow"></div>
+    <div class="horizon"></div>
+    <div class="spark"></div>
+    <div class="ripple"></div>
+
+    <div class="mark-wrap">
+      <div class="reflect" aria-hidden="true"><div class="reflect-inner" data-copy></div></div>
+      <h1 class="word" id="word" aria-label="Welland"><span class="part left ink" aria-hidden="true">We</span><span class="pillars" aria-hidden="true"><span class="l"><span class="glyph ink">l</span><i class="beam"></i></span><span class="l"><span class="glyph ink">l</span><i class="beam"></i></span></span><span class="part right ink" aria-hidden="true">and</span><span class="base"></span></h1>
+      <div class="shine" aria-hidden="true" data-copy></div>
+    </div>
+
+    <div class="flash"></div>
+  </div>
+
+  <button class="replay" type="button">다시 보기</button>
+</main>
+
+<script>
+  (function () {
+    var stage = document.getElementById('stage');
+    var word = document.getElementById('word');
+    var base = word.querySelector('.base');
+    var pillar = word.querySelector('.l');
+
+    // 비친 모습과 스치는 빛에 쓸 글자 복사본
+    document.querySelectorAll('[data-copy]').forEach(function (el) {
+      el.innerHTML = word.innerHTML;
+    });
+
+    // 글자 밑선이 가로선 위에 딱 올라서도록 잰다
+    function measure() {
+      var w = word.getBoundingClientRect();
+      var b = base.getBoundingClientRect();
+      var l = pillar.getBoundingClientRect();
+      stage.style.setProperty('--base-off', (b.top - w.top) + 'px');
+      stage.style.setProperty('--desc', (l.bottom - b.top) + 'px');
+    }
+
+    function play() {
+      stage.classList.remove('is-playing');
+      void stage.offsetWidth;
+      stage.classList.add('is-playing');
+    }
+
+    stage.addEventListener('click', play);
+    window.addEventListener('resize', measure);
+
+    var started = false;
+    function start() {
+      if (started) return;
+      started = true;
+      measure();
+      play();
+    }
+
+    if (document.fonts && document.fonts.load) {
+      document.fonts.load('italic 900 100px "Anybody"').then(start, start);
+      setTimeout(start, 2500);
+    } else {
+      start();
+    }
+  })();
+</script>
+</body>
+</html>
